@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System.IO;
+using System.Net;
 using System.Net.Http;
 using System.Text.Json;
 
@@ -59,12 +60,30 @@ public sealed class BunnyVideoClient
         };
 
         using var response = await SendMessageAsync(requestMessage).ConfigureAwait(false);
-
         var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
+        using var responseStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+        var jsonResult = await JsonSerializer.DeserializeAsync<VideoUploadResult>(responseStream).ConfigureAwait(false);
+
+        return jsonResult!;
+    }
+
+    public async Task<VideoUploadResult> UploadVideoAsync(long libraryId, Guid videoId, Stream stream)
+    {
+        string url = baseUri + $"library/{libraryId}/videos/{videoId}";
+
+        var requestMessage = new HttpRequestMessage(HttpMethod.Put, url)
+        {
+            Content = new StreamContent(stream)
+            {
+                Headers = { { "Content-Type", "application/json" } }
+            }
+        };
+
+        using var response = await SendMessageAsync(requestMessage).ConfigureAwait(false);
+        var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
         using var responseStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
-
         var jsonResult = await JsonSerializer.DeserializeAsync<VideoUploadResult>(responseStream).ConfigureAwait(false);
 
         return jsonResult!;
